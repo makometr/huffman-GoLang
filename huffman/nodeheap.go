@@ -1,5 +1,8 @@
 package huffman
 
+import (
+	"log"
+)
 
 type heapOfNodes []*haffmanBTNode
 
@@ -7,11 +10,21 @@ func (h heapOfNodes) Len() int {
 	return len(h)
 }
 func (h heapOfNodes) Less(i, j int) bool {
-	// if h[i].weight == h[j].weight {
-	// 	return h[i].weight < h[j].weight
-	// }
-	return h[i].weight < h[j].weight
+	if len(h[i].chars) == 0 || len(h[j].chars) == 0 {
+		log.Println("All compared nodes must be non-empty.")
+	}
+	if h[i].weight != h[j].weight {
+		return h[i].weight < h[j].weight
+	}
+	if len(h[i].chars) != len(h[j].chars) {
+		return len(h[i].chars) < len(h[j].chars)
+	}
+	if h[i].chars[0] == h[j].chars[0] {
+		log.Println("Same characters are not expected.")
+	}
+	return h[i].chars[0] < h[j].chars[0]
 }
+
 func (h heapOfNodes) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
