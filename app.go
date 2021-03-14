@@ -8,8 +8,7 @@ import (
 func main() {
 	var text string
 	fmt.Scanf("%s\n", &text)
-	encoder := huffman.NewHuffmanOptCode()
-	msg, err := encoder.Encode(text)
+	msg, err := huffman.Encode(text)
 	if err != nil {
 		panic("srror")
 	}

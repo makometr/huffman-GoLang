@@ -8,40 +8,44 @@ import (
 	"unicode"
 )
 
-// OptCode is
-type OptCode struct {
-	charFreq map[rune]int
-	codes    map[rune]string
+// IntermediateData is
+type IntermediateData struct {
+	charFreq  map[rune]int
+	codeTable map[rune]string
+	treeRoot  *haffmanBTNode
 }
 
-// NewHuffmanOptCode is constrcutor
-func NewHuffmanOptCode() *OptCode {
-	var obj OptCode
-	obj.charFreq = make(map[rune]int)
-	obj.codes = make(map[rune]string)
-	return &obj
+func (d IntermediateData) getCharFrequences() map[rune]int {
+	return d.charFreq
+}
+func (d IntermediateData) getCharCodes() map[rune]string {
+	return d.codeTable
+}
+func (d IntermediateData) PrintTree() {
+	fmt.Println("this is tree! todo")
 }
 
 // Encode method counts encodes text by Huffman algorithm
-func (h *OptCode) Encode(text string) (string, error) {
+func Encode(text string) (string, error) {
+	var optimal = IntermediateData{}
 	if !isTextValid(text) {
-		return "", errors.New("No-letter char in text")
+		return "", errors.New("No-letter char in text.")
 	}
-	h.countFreq(text)
-	h.countOptimalCodes()
-	// h.print()
-	newText := h.encodeText(text)
+	optimal.charFreq = countFreq(text)
+	optimal.treeRoot = buildHuffmunTree(optimal.charFreq)
+	optimal.codeTable = countOptimalCodes(optimal.treeRoot)
+	newText := encodeByCodeTable(text, optimal.codeTable)
 
 	return newText, nil
 }
 
-func (h OptCode) print() {
+func (h IntermediateData) print() {
 	fmt.Println("Frequency:")
 	for char, freq := range h.charFreq {
 		fmt.Printf("%c: %d\n", char, freq)
 	}
 	fmt.Printf("\nCodes:\n")
-	for char, code := range h.codes {
+	for char, code := range h.codeTable {
 		fmt.Printf("%c: %s\n", char, code)
 	}
 }
@@ -55,20 +59,23 @@ func isTextValid(text string) bool {
 	return true
 }
 
-func (h *OptCode) countFreq(text string) {
+func countFreq(text string) map[rune]int {
+	freqs := map[rune]int{}
 	for _, char := range text {
-		h.charFreq[char]++
+		freqs[char]++
 	}
+	return freqs
 }
 
-func (h *OptCode) countOptimalCodes() {
-	root := h.buildHuffmunTree()
-	h.generateCodesByTreeTraverse(root)
+func countOptimalCodes(root *haffmanBTNode) map[rune]string {
+	codes := map[rune]string{}
+	generateCodesByTreeTraverse(root, codes)
+	return codes
 }
 
-func (h *OptCode) buildHuffmunTree() *haffmanBTNode {
-	nodes := make(heapOfNodes, 0, len(h.charFreq))
-	for char, freq := range h.charFreq {
+func buildHuffmunTree(charFreq map[rune]int) *haffmanBTNode {
+	nodes := make(heapOfNodes, 0, len(charFreq))
+	for char, freq := range charFreq {
 		nodes = append(nodes, &haffmanBTNode{chars: []rune{char}, weight: freq})
 	}
 	heap.Init(&nodes)
@@ -82,9 +89,9 @@ func (h *OptCode) buildHuffmunTree() *haffmanBTNode {
 	return heap.Pop(&nodes).(*haffmanBTNode)
 }
 
-func (h *OptCode) generateCodesByTreeTraverse(root *haffmanBTNode) {
+func generateCodesByTreeTraverse(root *haffmanBTNode, codes map[rune]string) {
 	if root.IsLeaf() {
-		h.codes[root.chars[0]] = "0"
+		codes[root.chars[0]] = "0"
 		return
 	}
 	var traverse func(rootNode *haffmanBTNode, prevCode string)
@@ -93,7 +100,7 @@ func (h *OptCode) generateCodesByTreeTraverse(root *haffmanBTNode) {
 			if len(rootNode.chars) != 1 {
 				panic("Leaf has != 1 lenght of chars")
 			}
-			h.codes[rootNode.chars[0]] = prevCode
+			codes[rootNode.chars[0]] = prevCode
 			return
 		}
 		traverse(rootNode.left, prevCode+"0")
@@ -102,10 +109,10 @@ func (h *OptCode) generateCodesByTreeTraverse(root *haffmanBTNode) {
 	traverse(root, "")
 }
 
-func (h *OptCode) encodeText(text string) string {
+func encodeByCodeTable(text string, codeTable map[rune]string) string {
 	var builder strings.Builder
 	for _, char := range text {
-		builder.WriteString(h.codes[char])
+		builder.WriteString(codeTable[char])
 	}
 	return builder.String()
 }
