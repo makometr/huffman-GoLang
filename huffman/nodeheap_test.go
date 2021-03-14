@@ -135,7 +135,7 @@ func Test_heapOfNodes_Push(t *testing.T) {
 			&heapOfNodes{&haffmanBTNode{weight: 20}, &haffmanBTNode{weight: 10}, &haffmanBTNode{weight: 30}},
 		},
 		{
-			"Push in non-empty container.",
+			"Push in empty container.",
 			&heapOfNodes{},
 			args{&haffmanBTNode{weight: 30}},
 			&heapOfNodes{&haffmanBTNode{weight: 30}},

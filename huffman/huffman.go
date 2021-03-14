@@ -74,7 +74,9 @@ func (h *OptCode) buildHuffmunTree() *haffmanBTNode {
 	heap.Init(&nodes)
 
 	for len(nodes) > 1 {
-		newNode := mergeHuffmanBTNodes(heap.Pop(&nodes).(*haffmanBTNode), heap.Pop(&nodes).(*haffmanBTNode))
+		leftNode := heap.Pop(&nodes).(*haffmanBTNode)
+		rightNode := heap.Pop(&nodes).(*haffmanBTNode)
+		newNode := mergeHuffmanBTNodes(leftNode, rightNode)
 		heap.Push(&nodes, newNode)
 	}
 	return heap.Pop(&nodes).(*haffmanBTNode)
