@@ -8,19 +8,36 @@ import (
 )
 
 type freqsTable map[rune]int
-type codesTable map[rune]string
+type encodeTable map[rune]string
+type decodeTable map[string]rune
+
+func ConvertEncodeTableToDecode(encode encodeTable) decodeTable {
+	decode := make(decodeTable)
+	for char, code := range encode {
+		decode[code] = char
+	}
+	return decode
+}
+
+func ConvertDecodeTableToEncode(decode decodeTable) encodeTable {
+	encode := make(encodeTable)
+	for code, char := range decode {
+		encode[char] = code
+	}
+	return encode
+}
 
 // AlgoData is
 type AlgoData struct {
 	freqs    freqsTable
-	codes    codesTable
+	codes    encodeTable
 	treeRoot *haffmanBTNode
 }
 
-func (d AlgoData) getCharFrequences() freqsTable {
+func (d AlgoData) GetCharFrequences() freqsTable {
 	return d.freqs
 }
-func (d AlgoData) getCharCodes() codesTable {
+func (d AlgoData) GetCharCodes() encodeTable {
 	return d.codes
 }
 func (d AlgoData) PrintTree() {
@@ -29,13 +46,16 @@ func (d AlgoData) PrintTree() {
 func (d AlgoData) EncodeText(text string) string {
 	return encodeByCodeTable(text, d.codes)
 }
+func (d AlgoData) DecodedText(text string) string {
+	return decodeByDecodeTable(text, ConvertEncodeTableToDecode(d.codes))
+}
 
 // NewAlgoDataFromText returnes huffman full-intermediate data based on encoding string.
 func NewAlgoDataFromText(text string) (*AlgoData, error) {
 	if err := checkUserText(text); err != nil {
 		return nil, err
 	}
-	data := newFilledData(countFreq(text))
+	data := newFilledData(countFreqs(text))
 	return data, nil
 }
 
@@ -60,10 +80,28 @@ func Encode(text string) (string, error) {
 	return result, nil
 }
 
+func Decode(text string, table decodeTable) (string, error) {
+	// TODO check table
+	return decodeByDecodeTable(text, table), nil
+}
+
+func decodeByDecodeTable(text string, table decodeTable) string {
+	var resultBuilder strings.Builder
+	curBeginIndex := 0
+	for curEndIndex, _ := range text {
+		currentBitSequence := text[curBeginIndex : curEndIndex+1]
+		if decodedChar, ok := table[currentBitSequence]; ok {
+			resultBuilder.WriteRune(decodedChar)
+			curBeginIndex = curEndIndex + 1
+		}
+	}
+	return resultBuilder.String()
+}
+
 func newAlgoData() *AlgoData {
 	data := AlgoData{}
 	data.freqs = freqsTable{}
-	data.codes = codesTable{}
+	data.codes = encodeTable{}
 	return &data
 }
 
@@ -86,7 +124,7 @@ func (h AlgoData) print() {
 	}
 }
 
-func countFreq(text string) freqsTable {
+func countFreqs(text string) freqsTable {
 	freqs := freqsTable{}
 	for _, char := range text {
 		freqs[char]++
@@ -94,13 +132,13 @@ func countFreq(text string) freqsTable {
 	return freqs
 }
 
-func countOptimalCodes(root *haffmanBTNode) codesTable {
-	codes := codesTable{}
+func countOptimalCodes(root *haffmanBTNode) encodeTable {
+	codes := encodeTable{}
 	generateCodesByTreeTraverse(root, codes)
 	return codes
 }
 
-func generateCodesByTreeTraverse(root *haffmanBTNode, codes codesTable) {
+func generateCodesByTreeTraverse(root *haffmanBTNode, codes encodeTable) {
 	if root.IsLeaf() {
 		codes[root.chars[0]] = "0"
 		return
@@ -120,7 +158,7 @@ func generateCodesByTreeTraverse(root *haffmanBTNode, codes codesTable) {
 	traverse(root, "")
 }
 
-func encodeByCodeTable(text string, codeTable codesTable) string {
+func encodeByCodeTable(text string, codeTable encodeTable) string {
 	var builder strings.Builder
 	for _, char := range text {
 		builder.WriteString(codeTable[char])
