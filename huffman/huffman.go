@@ -50,7 +50,9 @@ func (d AlgoData) EncodeText(text string) string {
 	return encodeByCodeTable(text, d.codes)
 }
 func (d AlgoData) DecodeText(text string) string {
-	return decodeByDecodeTable(text, EncodeTableToDecode(d.codes))
+	// TODO is error expected ???
+	decodedtext, _ := decodeByDecodeTable(text, EncodeTableToDecode(d.codes))
+	return decodedtext
 }
 func (d AlgoData) PrintStatistics() {
 	var fullEncodedSize, fullOriginalSize, sizeOfDecodeTable int
@@ -104,14 +106,19 @@ func encodeByCodeTable(text string, codeTable encodeTable) string {
 	return builder.String()
 }
 
+// Decode decodes input text by the decodeTable rules.
 func Decode(text string, table decodeTable) (string, error) {
 	if err := checkUserDecodeTable(table); err != nil {
 		return "", err
 	}
-	return decodeByDecodeTable(text, table), nil
+	decodedText, err := decodeByDecodeTable(text, table)
+	if err != nil {
+		return "", err
+	}
+	return decodedText, nil
 }
 
-func decodeByDecodeTable(text string, table decodeTable) string {
+func decodeByDecodeTable(text string, table decodeTable) (string, error) {
 	var resultBuilder strings.Builder
 	curBeginIndex := 0
 	for curEndIndex, _ := range text {
@@ -119,9 +126,11 @@ func decodeByDecodeTable(text string, table decodeTable) string {
 		if decodedChar, ok := table[currentBitSequence]; ok {
 			resultBuilder.WriteRune(decodedChar)
 			curBeginIndex = curEndIndex + 1
+		} else {
+			return "", errors.New("text contains rune not presented in decodeTable")
 		}
 	}
-	return resultBuilder.String()
+	return resultBuilder.String(), nil
 }
 
 func newAlgoData() *AlgoData {
@@ -139,7 +148,7 @@ func newFilledData(freqs freqsTable) *AlgoData {
 	return data
 }
 
-func (h AlgoData) print() {
+func (h AlgoData) Print() {
 	fmt.Println("Frequency:")
 	for char, freq := range h.freqs {
 		fmt.Printf("%c: %d\n", char, freq)
@@ -187,7 +196,7 @@ func generateCodesByTreeTraverse(root *haffmanBTNode, codes encodeTable) {
 func checkUserText(text string) error {
 	for _, char := range text {
 		if !unicode.IsGraphic(char) {
-			return errors.New("Unicode graphic chars expected.")
+			return errors.New("unicode graphic chars expected")
 		}
 	}
 	return nil
@@ -196,20 +205,20 @@ func checkUserText(text string) error {
 func checkUserFrequence(freqs freqsTable) error {
 	for char, freq := range freqs {
 		if !unicode.IsGraphic(char) {
-			return errors.New("Unicode graphic chars expected.")
+			return errors.New("unicode graphic chars expected")
 		}
 		if freq <= 0 {
-			return errors.New("Frequence must be positive integer.")
+			return errors.New("frequence must be positive integer")
 		}
 	}
 	return nil
 }
 
 func checkUserDecodeTable(table decodeTable) error {
-	uniqueChars := make(map[rune]bool, 0)
+	uniqueChars := make(map[rune]bool)
 	for code, char := range table {
-		if _, ok := uniqueChars[char]; ok == true {
-			return errors.New("Unique chars encoded expected.")
+		if _, ok := uniqueChars[char]; ok {
+			return errors.New("unique chars encoded expected")
 		}
 		samePrefixCounter := 0
 		for checkedCode, _ := range table {
@@ -218,7 +227,7 @@ func checkUserDecodeTable(table decodeTable) error {
 			}
 		}
 		if samePrefixCounter > 1 {
-			return errors.New(fmt.Sprintln("Table contains codes with same prefixes."))
+			return errors.New(fmt.Sprintln("table contains codes with same prefixes"))
 		}
 	}
 	return nil
