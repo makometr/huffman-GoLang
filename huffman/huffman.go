@@ -1,95 +1,106 @@
 package huffman
 
 import (
-	"container/heap"
 	"errors"
 	"fmt"
 	"strings"
 	"unicode"
 )
 
-// IntermediateData is
-type IntermediateData struct {
-	charFreq  map[rune]int
-	codeTable map[rune]string
-	treeRoot  *haffmanBTNode
+type freqsTable map[rune]int
+type codesTable map[rune]string
+
+// AlgoData is
+type AlgoData struct {
+	freqs    freqsTable
+	codes    codesTable
+	treeRoot *haffmanBTNode
 }
 
-func (d IntermediateData) getCharFrequences() map[rune]int {
-	return d.charFreq
+func (d AlgoData) getCharFrequences() freqsTable {
+	return d.freqs
 }
-func (d IntermediateData) getCharCodes() map[rune]string {
-	return d.codeTable
+func (d AlgoData) getCharCodes() codesTable {
+	return d.codes
 }
-func (d IntermediateData) PrintTree() {
+func (d AlgoData) PrintTree() {
 	fmt.Println("this is tree! todo")
 }
-
-// Encode method counts encodes text by Huffman algorithm
-func Encode(text string) (string, error) {
-	var optimal = IntermediateData{}
-	if !isTextValid(text) {
-		return "", errors.New("No-letter char in text.")
-	}
-	optimal.charFreq = countFreq(text)
-	optimal.treeRoot = buildHuffmunTree(optimal.charFreq)
-	optimal.codeTable = countOptimalCodes(optimal.treeRoot)
-	newText := encodeByCodeTable(text, optimal.codeTable)
-
-	return newText, nil
+func (d AlgoData) EncodeText(text string) string {
+	return encodeByCodeTable(text, d.codes)
 }
 
-func (h IntermediateData) print() {
+// NewAlgoDataFromText returnes huffman full-intermediate data based on encoding string.
+func NewAlgoDataFromText(text string) (*AlgoData, error) {
+	if err := checkUserText(text); err != nil {
+		return nil, err
+	}
+	data := newFilledData(countFreq(text))
+	return data, nil
+}
+
+// NewAlgoDataFromText returnes huffman full-intermediate data based on char frequence table.
+func NewAlgoDataFromFrequence(freq freqsTable) (*AlgoData, error) {
+	if err := checkUserFrequence(freq); err != nil {
+		return nil, err
+	}
+	data := newFilledData(freq)
+	return data, nil
+}
+
+// Encode returnes encoded text by Huffman alogorithm.
+func Encode(text string) (string, error) {
+	var result string
+	if data, err := NewAlgoDataFromText(text); err != nil {
+		return "", err
+	} else {
+		result = encodeByCodeTable(text, data.codes)
+	}
+
+	return result, nil
+}
+
+func newAlgoData() *AlgoData {
+	data := AlgoData{}
+	data.freqs = freqsTable{}
+	data.codes = codesTable{}
+	return &data
+}
+
+func newFilledData(freqs freqsTable) *AlgoData {
+	data := newAlgoData()
+	data.freqs = freqs
+	data.treeRoot = buildHuffmunTree(data.freqs)
+	data.codes = countOptimalCodes(data.treeRoot)
+	return data
+}
+
+func (h AlgoData) print() {
 	fmt.Println("Frequency:")
-	for char, freq := range h.charFreq {
+	for char, freq := range h.freqs {
 		fmt.Printf("%c: %d\n", char, freq)
 	}
 	fmt.Printf("\nCodes:\n")
-	for char, code := range h.codeTable {
+	for char, code := range h.codes {
 		fmt.Printf("%c: %s\n", char, code)
 	}
 }
 
-func isTextValid(text string) bool {
-	for _, char := range text {
-		if !unicode.IsLetter(char) {
-			return false
-		}
-	}
-	return true
-}
-
-func countFreq(text string) map[rune]int {
-	freqs := map[rune]int{}
+func countFreq(text string) freqsTable {
+	freqs := freqsTable{}
 	for _, char := range text {
 		freqs[char]++
 	}
 	return freqs
 }
 
-func countOptimalCodes(root *haffmanBTNode) map[rune]string {
-	codes := map[rune]string{}
+func countOptimalCodes(root *haffmanBTNode) codesTable {
+	codes := codesTable{}
 	generateCodesByTreeTraverse(root, codes)
 	return codes
 }
 
-func buildHuffmunTree(charFreq map[rune]int) *haffmanBTNode {
-	nodes := make(heapOfNodes, 0, len(charFreq))
-	for char, freq := range charFreq {
-		nodes = append(nodes, &haffmanBTNode{chars: []rune{char}, weight: freq})
-	}
-	heap.Init(&nodes)
-
-	for len(nodes) > 1 {
-		leftNode := heap.Pop(&nodes).(*haffmanBTNode)
-		rightNode := heap.Pop(&nodes).(*haffmanBTNode)
-		newNode := mergeHuffmanBTNodes(leftNode, rightNode)
-		heap.Push(&nodes, newNode)
-	}
-	return heap.Pop(&nodes).(*haffmanBTNode)
-}
-
-func generateCodesByTreeTraverse(root *haffmanBTNode, codes map[rune]string) {
+func generateCodesByTreeTraverse(root *haffmanBTNode, codes codesTable) {
 	if root.IsLeaf() {
 		codes[root.chars[0]] = "0"
 		return
@@ -109,10 +120,31 @@ func generateCodesByTreeTraverse(root *haffmanBTNode, codes map[rune]string) {
 	traverse(root, "")
 }
 
-func encodeByCodeTable(text string, codeTable map[rune]string) string {
+func encodeByCodeTable(text string, codeTable codesTable) string {
 	var builder strings.Builder
 	for _, char := range text {
 		builder.WriteString(codeTable[char])
 	}
 	return builder.String()
+}
+
+func checkUserText(text string) error {
+	for _, char := range text {
+		if !unicode.IsGraphic(char) {
+			return errors.New("Unicode graphic chars expected.")
+		}
+	}
+	return nil
+}
+
+func checkUserFrequence(freqs freqsTable) error {
+	for char, freq := range freqs {
+		if !unicode.IsGraphic(char) {
+			return errors.New("Unicode graphic chars expected.")
+		}
+		if freq <= 0 {
+			return errors.New("Frequence must be positive integer.")
+		}
+	}
+	return nil
 }

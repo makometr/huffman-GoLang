@@ -9,6 +9,7 @@ func main() {
 	var text string
 	fmt.Scanf("%s\n", &text)
 	msg, err := huffman.Encode(text)
+	// data := huffman.AlgoData{}
 	if err != nil {
 		panic("srror")
 	}
