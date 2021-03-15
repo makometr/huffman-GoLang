@@ -46,11 +46,27 @@ func (d AlgoData) GetDecodeTable() decodeTable {
 func (d AlgoData) PrintTree() {
 	fmt.Println("this is tree! todo")
 }
-func (d AlgoData) EncodeText(text string) (string, decodeTable) {
-	return encodeByCodeTable(text, d.codes), EncodeTableToDecode(d.codes)
+func (d AlgoData) EncodeText(text string) string {
+	return encodeByCodeTable(text, d.codes)
 }
 func (d AlgoData) DecodeText(text string) string {
 	return decodeByDecodeTable(text, EncodeTableToDecode(d.codes))
+}
+func (d AlgoData) PrintStatistics() {
+	var fullEncodedSize, fullOriginalSize, sizeOfDecodeTable int
+	for char, freq := range d.freqs {
+		sizeOriginal := len(string(char))
+		encodedSize := len(d.codes[char])
+		fullOriginalSize += sizeOriginal * freq
+		fullEncodedSize += encodedSize * freq
+		sizeOfDecodeTable += (sizeOriginal + 1 + encodedSize + 1)
+	}
+	fullEncodedSize = fullEncodedSize/8 + 1
+	realEncodedSize := fullEncodedSize + sizeOfDecodeTable
+
+	fmt.Printf("Size of non-encoded text: %d bytes.\n", fullOriginalSize)
+	fmt.Printf("Size of encoded text + size of decode-table: %d+%d=%d bytes.\n", fullEncodedSize, sizeOfDecodeTable, realEncodedSize)
+	fmt.Printf("Efficiency: %.2f%%\n", float64(fullOriginalSize-realEncodedSize)/float64(fullOriginalSize)*100)
 }
 
 // NewAlgoDataFromText returnes huffman full-intermediate data based on encoding string.
@@ -72,12 +88,12 @@ func NewAlgoDataFromFrequence(freq freqsTable) (*AlgoData, error) {
 }
 
 // Encode returnes encoded text by Huffman alogorithm.
-func Encode(text string) (string, error) {
+func Encode(text string) (string, decodeTable, error) {
 	data, err := NewAlgoDataFromText(text)
 	if err != nil {
-		return "", err
+		return "", decodeTable{}, err
 	}
-	return encodeByCodeTable(text, data.codes), nil
+	return encodeByCodeTable(text, data.codes), EncodeTableToDecode(data.codes), nil
 }
 
 func encodeByCodeTable(text string, codeTable encodeTable) string {
