@@ -10,11 +10,17 @@ func main() {
 	fmt.Scanf("%s\n", &text)
 
 	data, _ := huffman.NewAlgoDataFromText(text)
-	encodedText := data.EncodeText(text)
-	// decodeTable := huffman.ConvertEncodeTableToDecode(data.GetCharCodes())
-	decodedText := data.DecodedText(encodedText)
+	encodedText, decodeTable := data.EncodeText(text)
+	decodedText := data.DecodeText(encodedText)
 	fmt.Println(encodedText)
 	fmt.Println(decodedText)
+
+	if decodedText, err := huffman.Decode(encodedText, decodeTable); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(decodedText)
+	}
+
 	// msg, err := huffman.Encode(text)
 	// if err != nil {
 	// 	panic("srror")

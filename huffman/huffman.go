@@ -11,7 +11,7 @@ type freqsTable map[rune]int
 type encodeTable map[rune]string
 type decodeTable map[string]rune
 
-func ConvertEncodeTableToDecode(encode encodeTable) decodeTable {
+func EncodeTableToDecode(encode encodeTable) decodeTable {
 	decode := make(decodeTable)
 	for char, code := range encode {
 		decode[code] = char
@@ -19,7 +19,7 @@ func ConvertEncodeTableToDecode(encode encodeTable) decodeTable {
 	return decode
 }
 
-func ConvertDecodeTableToEncode(decode decodeTable) encodeTable {
+func DecodeTableToEncode(decode decodeTable) encodeTable {
 	encode := make(encodeTable)
 	for code, char := range decode {
 		encode[char] = code
@@ -37,17 +37,20 @@ type AlgoData struct {
 func (d AlgoData) GetCharFrequences() freqsTable {
 	return d.freqs
 }
-func (d AlgoData) GetCharCodes() encodeTable {
+func (d AlgoData) GetEncodeTable() encodeTable {
 	return d.codes
+}
+func (d AlgoData) GetDecodeTable() decodeTable {
+	return EncodeTableToDecode(d.codes)
 }
 func (d AlgoData) PrintTree() {
 	fmt.Println("this is tree! todo")
 }
-func (d AlgoData) EncodeText(text string) string {
-	return encodeByCodeTable(text, d.codes)
+func (d AlgoData) EncodeText(text string) (string, decodeTable) {
+	return encodeByCodeTable(text, d.codes), EncodeTableToDecode(d.codes)
 }
-func (d AlgoData) DecodedText(text string) string {
-	return decodeByDecodeTable(text, ConvertEncodeTableToDecode(d.codes))
+func (d AlgoData) DecodeText(text string) string {
+	return decodeByDecodeTable(text, EncodeTableToDecode(d.codes))
 }
 
 // NewAlgoDataFromText returnes huffman full-intermediate data based on encoding string.
@@ -70,18 +73,25 @@ func NewAlgoDataFromFrequence(freq freqsTable) (*AlgoData, error) {
 
 // Encode returnes encoded text by Huffman alogorithm.
 func Encode(text string) (string, error) {
-	var result string
-	if data, err := NewAlgoDataFromText(text); err != nil {
+	data, err := NewAlgoDataFromText(text)
+	if err != nil {
 		return "", err
-	} else {
-		result = encodeByCodeTable(text, data.codes)
 	}
+	return encodeByCodeTable(text, data.codes), nil
+}
 
-	return result, nil
+func encodeByCodeTable(text string, codeTable encodeTable) string {
+	var builder strings.Builder
+	for _, char := range text {
+		builder.WriteString(codeTable[char])
+	}
+	return builder.String()
 }
 
 func Decode(text string, table decodeTable) (string, error) {
-	// TODO check table
+	if err := checkUserDecodeTable(table); err != nil {
+		return "", err
+	}
 	return decodeByDecodeTable(text, table), nil
 }
 
@@ -158,14 +168,6 @@ func generateCodesByTreeTraverse(root *haffmanBTNode, codes encodeTable) {
 	traverse(root, "")
 }
 
-func encodeByCodeTable(text string, codeTable encodeTable) string {
-	var builder strings.Builder
-	for _, char := range text {
-		builder.WriteString(codeTable[char])
-	}
-	return builder.String()
-}
-
 func checkUserText(text string) error {
 	for _, char := range text {
 		if !unicode.IsGraphic(char) {
@@ -182,6 +184,25 @@ func checkUserFrequence(freqs freqsTable) error {
 		}
 		if freq <= 0 {
 			return errors.New("Frequence must be positive integer.")
+		}
+	}
+	return nil
+}
+
+func checkUserDecodeTable(table decodeTable) error {
+	uniqueChars := make(map[rune]bool, 0)
+	for code, char := range table {
+		if _, ok := uniqueChars[char]; ok == true {
+			return errors.New("Unique chars encoded expected.")
+		}
+		samePrefixCounter := 0
+		for checkedCode, _ := range table {
+			if strings.HasPrefix(code, checkedCode) {
+				samePrefixCounter++
+			}
+		}
+		if samePrefixCounter > 1 {
+			return errors.New(fmt.Sprintln("Table contains codes with same prefixes."))
 		}
 	}
 	return nil
