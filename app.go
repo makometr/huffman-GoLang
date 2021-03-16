@@ -17,7 +17,24 @@ func main() {
 		fmt.Println(encodedText)
 		fmt.Println(decodedText)
 		data.PrintStatistics()
+		huffman.PrintEncodeStatisticsJSON(text)
 	}()
+
+	// func() {
+	// 	jsonObj, err := huffman.EncodeToJSON(text)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	} else {
+	// 		fmt.Println(string(jsonObj))
+	// 	}
+
+	// 	decodedText, err := huffman.DecodeFromJSON(jsonObj)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	fmt.Println(decodedText)
+	// 	fmt.Println(decodedText == text)
+	// }()
 
 	// func() {
 	// 	// Example of using module without proxy-object.

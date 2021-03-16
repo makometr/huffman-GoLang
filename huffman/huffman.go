@@ -51,7 +51,7 @@ func (d AlgoData) EncodeText(text string) string {
 }
 func (d AlgoData) DecodeText(text string) string {
 	// TODO is error expected ???
-	decodedtext, _ := decodeByDecodeTable(text, EncodeTableToDecode(d.codes))
+	decodedtext, _ := decodeWithTable(text, EncodeTableToDecode(d.codes))
 	return decodedtext
 }
 func (d AlgoData) PrintStatistics() {
@@ -111,23 +111,22 @@ func Decode(text string, table decodeTable) (string, error) {
 	if err := checkUserDecodeTable(table); err != nil {
 		return "", err
 	}
-	decodedText, err := decodeByDecodeTable(text, table)
+	decodedText, err := decodeWithTable(text, table)
 	if err != nil {
 		return "", err
 	}
 	return decodedText, nil
 }
 
-func decodeByDecodeTable(text string, table decodeTable) (string, error) {
+func decodeWithTable(encodedText string, table decodeTable) (string, error) {
+	// TODO detect incorrect decoded text
 	var resultBuilder strings.Builder
 	curBeginIndex := 0
-	for curEndIndex, _ := range text {
-		currentBitSequence := text[curBeginIndex : curEndIndex+1]
+	for curEndIndex, _ := range encodedText {
+		currentBitSequence := encodedText[curBeginIndex : curEndIndex+1]
 		if decodedChar, ok := table[currentBitSequence]; ok {
 			resultBuilder.WriteRune(decodedChar)
 			curBeginIndex = curEndIndex + 1
-		} else {
-			return "", errors.New("text contains rune not presented in decodeTable")
 		}
 	}
 	return resultBuilder.String(), nil
