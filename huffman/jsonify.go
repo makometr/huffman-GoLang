@@ -13,7 +13,7 @@ type algoDataJSON struct {
 }
 
 func EncodeToJSON(text string) ([]byte, error) {
-	encodedText, decodeTable, err := Encode(text)
+	encodedText, decodeTable, err := EncodeString(text)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -29,7 +29,7 @@ func DecodeFromJSON(bytes []byte) (string, error) {
 	if err := json.Unmarshal(bytes, &algoData); err != nil {
 		return "", err
 	}
-	decodedText, err := Decode(algoData.Encodedtext, algoData.DecodeTable)
+	decodedText, err := DecodeString(algoData.Encodedtext, algoData.DecodeTable)
 	if err != nil {
 		return "", err
 	}

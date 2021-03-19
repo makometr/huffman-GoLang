@@ -3,22 +3,42 @@ package main
 import (
 	"fmt"
 	"huffmanApp/huffman"
+	"io/ioutil"
 )
 
 func main() {
-	var text string
-	fmt.Scanf("%s\n", &text)
+	text, err := ioutil.ReadFile("text.txt")
+	if err != nil {
+		panic(err)
+	}
 
-	func() {
-		// Example of using module with full intermediate data object.
-		data, _ := huffman.NewAlgoDataFromText(text)
-		encodedText := data.EncodeText(text)
-		decodedText := data.DecodeText(encodedText)
-		fmt.Println(encodedText)
-		fmt.Println(decodedText)
-		data.PrintStatistics()
-		huffman.PrintEncodeStatisticsJSON(text)
-	}()
+	encodedText, table, err := huffman.EncodeBytes(text)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(encodedText)
+	fmt.Println(len(encodedText))
+	result, err := huffman.DecodeBytes(encodedText, table)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(result))
+	if err := ioutil.WriteFile("result.txt", result, 0777); err != nil {
+		fmt.Println(err)
+	}
+
+	// fmt.Println(string(text))
+
+	// func() {
+	// 	// Example of using module with full intermediate data object.
+	// 	data, _ := huffman.NewAlgoDataFromText(text)
+	// 	encodedText := data.EncodeText(text)
+	// 	decodedText := data.DecodeText(encodedText)
+	// 	fmt.Println(encodedText)
+	// 	fmt.Println(decodedText)
+	// 	data.PrintStatistics()
+	// 	huffman.PrintEncodeStatisticsJSON(text)
+	// }()
 
 	// func() {
 	// 	jsonObj, err := huffman.EncodeToJSON(text)

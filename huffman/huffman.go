@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type freqsTable map[rune]int
 type encodeTable map[rune]string
 type decodeTable map[string]rune
 
-func EncodeTableToDecode(encode encodeTable) decodeTable {
+func ConvertEncodeTable(encode encodeTable) decodeTable {
 	decode := make(decodeTable)
 	for char, code := range encode {
 		decode[code] = char
@@ -19,7 +20,7 @@ func EncodeTableToDecode(encode encodeTable) decodeTable {
 	return decode
 }
 
-func DecodeTableToEncode(decode decodeTable) encodeTable {
+func ConvertDecodeTable(decode decodeTable) encodeTable {
 	encode := make(encodeTable)
 	for code, char := range decode {
 		encode[char] = code
@@ -41,7 +42,7 @@ func (d AlgoData) GetEncodeTable() encodeTable {
 	return d.codes
 }
 func (d AlgoData) GetDecodeTable() decodeTable {
-	return EncodeTableToDecode(d.codes)
+	return ConvertEncodeTable(d.codes)
 }
 func (d AlgoData) PrintTree() {
 	fmt.Println("this is tree! todo")
@@ -51,7 +52,7 @@ func (d AlgoData) EncodeText(text string) string {
 }
 func (d AlgoData) DecodeText(text string) string {
 	// TODO is error expected ???
-	decodedtext, _ := decodeWithTable(text, EncodeTableToDecode(d.codes))
+	decodedtext, _ := decodeWithTable(text, ConvertEncodeTable(d.codes))
 	return decodedtext
 }
 func (d AlgoData) PrintStatistics() {
@@ -76,7 +77,7 @@ func NewAlgoDataFromText(text string) (*AlgoData, error) {
 	if err := checkUserText(text); err != nil {
 		return nil, err
 	}
-	data := newFilledData(countFreqs(text))
+	data := newFilledData(countFreqs([]byte(text)))
 	return data, nil
 }
 
@@ -89,13 +90,22 @@ func NewAlgoDataFromFrequence(freq freqsTable) (*AlgoData, error) {
 	return data, nil
 }
 
-// Encode returnes encoded text by Huffman alogorithm.
-func Encode(text string) (string, decodeTable, error) {
+func EncodeBytes(byteText []byte) ([]byte, decodeTable, error) {
+	// TODO do EncodeString a wrapper over EncodeBytes
+	res, table, err := EncodeString(string(byteText))
+	if err != nil {
+		return []byte{}, decodeTable{}, err
+	}
+	return []byte(res), table, nil
+}
+
+// EncodeString returnes encoded text by Huffman alogorithm.
+func EncodeString(text string) (string, decodeTable, error) {
 	data, err := NewAlgoDataFromText(text)
 	if err != nil {
 		return "", decodeTable{}, err
 	}
-	return encodeByCodeTable(text, data.codes), EncodeTableToDecode(data.codes), nil
+	return encodeByCodeTable(text, data.codes), ConvertEncodeTable(data.codes), nil
 }
 
 func encodeByCodeTable(text string, codeTable encodeTable) string {
@@ -106,8 +116,13 @@ func encodeByCodeTable(text string, codeTable encodeTable) string {
 	return builder.String()
 }
 
-// Decode decodes input text by the decodeTable rules.
-func Decode(text string, table decodeTable) (string, error) {
+func DecodeBytes(text []byte, table decodeTable) ([]byte, error) {
+	result, err := DecodeString(string(text), table)
+	return []byte(result), err
+}
+
+// DecodeString decodes input text by the decodeTable rules.
+func DecodeString(text string, table decodeTable) (string, error) {
 	if err := checkUserDecodeTable(table); err != nil {
 		return "", err
 	}
@@ -158,9 +173,11 @@ func (h AlgoData) Print() {
 	}
 }
 
-func countFreqs(text string) freqsTable {
+func countFreqs(text []byte) freqsTable {
 	freqs := freqsTable{}
-	for _, char := range text {
+	for bytesRead := 0; bytesRead < len(text); {
+		char, size := utf8.DecodeRune(text[bytesRead:])
+		bytesRead += size
 		freqs[char]++
 	}
 	return freqs
@@ -193,11 +210,7 @@ func generateCodesByTreeTraverse(root *haffmanBTNode, codes encodeTable) {
 }
 
 func checkUserText(text string) error {
-	for _, char := range text {
-		if !unicode.IsGraphic(char) {
-			return errors.New("unicode graphic chars expected")
-		}
-	}
+	// TODO whats check?)
 	return nil
 }
 
