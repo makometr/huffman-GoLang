@@ -1,10 +1,11 @@
 package huffman
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -48,9 +49,11 @@ func (d AlgoData) PrintTree() {
 	fmt.Println("this is tree! todo")
 }
 func (d AlgoData) EncodeText(text string) string {
-	return encodeByCodeTable(text, d.codes)
+	return ""
+	// TODO
+	// return encodeByCodeTable(text, d.codes)
 }
-func (d AlgoData) DecodeText(text string) string {
+func (d AlgoData) DecodeText(text []byte) []byte {
 	// TODO is error expected ???
 	decodedtext, _ := decodeWithTable(text, ConvertEncodeTable(d.codes))
 	return decodedtext
@@ -72,12 +75,9 @@ func (d AlgoData) PrintStatistics() {
 	fmt.Printf("Efficiency: %.2f%%\n", float64(fullOriginalSize-realEncodedSize)/float64(fullOriginalSize)*100)
 }
 
-// NewAlgoDataFromText returnes huffman full-intermediate data based on encoding string.
-func NewAlgoDataFromText(text string) (*AlgoData, error) {
-	if err := checkUserText(text); err != nil {
-		return nil, err
-	}
-	data := newFilledData(countFreqs([]byte(text)))
+// NewAlgoDataFromBytes returnes huffman full-intermediate data based on encoding string.
+func NewAlgoDataFromBytes(text []byte) (*AlgoData, error) {
+	data := newFilledData(countFreqs(text))
 	return data, nil
 }
 
@@ -91,60 +91,66 @@ func NewAlgoDataFromFrequence(freq freqsTable) (*AlgoData, error) {
 }
 
 func EncodeBytes(byteText []byte) ([]byte, decodeTable, error) {
-	// TODO do EncodeString a wrapper over EncodeBytes
-	res, table, err := EncodeString(string(byteText))
+	res, table, err := Encode(byteText)
 	if err != nil {
 		return []byte{}, decodeTable{}, err
 	}
 	return []byte(res), table, nil
 }
 
-// EncodeString returnes encoded text by Huffman alogorithm.
-func EncodeString(text string) (string, decodeTable, error) {
-	data, err := NewAlgoDataFromText(text)
+// Encode returnes encoded text by Huffman alogorithm.
+func Encode(text []byte) ([]byte, decodeTable, error) {
+	data, err := NewAlgoDataFromBytes(text)
 	if err != nil {
-		return "", decodeTable{}, err
+		return []byte{}, decodeTable{}, err
 	}
-	return encodeByCodeTable(text, data.codes), ConvertEncodeTable(data.codes), nil
+	size := countUsedBits(data.freqs, data.codes)
+	// TODO in future size	/8 + 1
+	return encodeWithTable(text, data.codes, size), ConvertEncodeTable(data.codes), nil
 }
 
-func encodeByCodeTable(text string, codeTable encodeTable) string {
-	var builder strings.Builder
-	for _, char := range text {
-		builder.WriteString(codeTable[char])
+func encodeWithTable(text []byte, codeTable encodeTable, size int) []byte {
+	// var builder strings.Builder
+	var buffer bytes.Buffer
+	for bytesRead := 0; bytesRead < len(text); {
+		char, size := utf8.DecodeRune(text[bytesRead:])
+		bytesRead += size
+		// builder.WriteString(codeTable[char])
+		buffer.Write([]byte(codeTable[char]))
 	}
-	return builder.String()
+	// return []byte(builder.String())
+	return buffer.Bytes()
 }
 
 func DecodeBytes(text []byte, table decodeTable) ([]byte, error) {
-	result, err := DecodeString(string(text), table)
+	result, err := DecodeString(text, table)
 	return []byte(result), err
 }
 
 // DecodeString decodes input text by the decodeTable rules.
-func DecodeString(text string, table decodeTable) (string, error) {
+func DecodeString(text []byte, table decodeTable) ([]byte, error) {
 	if err := checkUserDecodeTable(table); err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	decodedText, err := decodeWithTable(text, table)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	return decodedText, nil
 }
 
-func decodeWithTable(encodedText string, table decodeTable) (string, error) {
+func decodeWithTable(encodedText []byte, table decodeTable) ([]byte, error) {
 	// TODO detect incorrect decoded text
 	var resultBuilder strings.Builder
 	curBeginIndex := 0
 	for curEndIndex, _ := range encodedText {
 		currentBitSequence := encodedText[curBeginIndex : curEndIndex+1]
-		if decodedChar, ok := table[currentBitSequence]; ok {
+		if decodedChar, ok := table[string(currentBitSequence)]; ok {
 			resultBuilder.WriteRune(decodedChar)
 			curBeginIndex = curEndIndex + 1
 		}
 	}
-	return resultBuilder.String(), nil
+	return []byte(resultBuilder.String()), nil
 }
 
 func newAlgoData() *AlgoData {
@@ -209,16 +215,8 @@ func generateCodesByTreeTraverse(root *haffmanBTNode, codes encodeTable) {
 	traverse(root, "")
 }
 
-func checkUserText(text string) error {
-	// TODO whats check?)
-	return nil
-}
-
 func checkUserFrequence(freqs freqsTable) error {
-	for char, freq := range freqs {
-		if !unicode.IsGraphic(char) {
-			return errors.New("unicode graphic chars expected")
-		}
+	for _, freq := range freqs {
 		if freq <= 0 {
 			return errors.New("frequence must be positive integer")
 		}
@@ -243,4 +241,34 @@ func checkUserDecodeTable(table decodeTable) error {
 		}
 	}
 	return nil
+}
+
+func countUsedBits(freq freqsTable, table encodeTable) (summ int) {
+	for char, freq := range freq {
+		summ += freq * len(table[char])
+	}
+	return
+}
+
+func printFreqs(freq freqsTable) {
+	ordered := make([]struct {
+		key   rune
+		value int
+	}, 0, len(freq))
+	summ := 0
+	for char, freq := range freq {
+		ordered = append(ordered, struct {
+			key   rune
+			value int
+		}{char, freq})
+		summ += freq
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		return ordered[i].value > ordered[j].value
+	})
+	for i := 0; i < len(ordered); i++ {
+		fmt.Printf("%s (%d): %d\n", string(ordered[i].key), ordered[i].key, ordered[i].value)
+	}
+	fmt.Println("Unique chas: ", len(ordered))
+	fmt.Println("Count of chars: ", summ)
 }

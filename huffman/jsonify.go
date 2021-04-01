@@ -8,12 +8,12 @@ import (
 // TODO convert to binary code
 
 type algoDataJSON struct {
-	Encodedtext string
+	Encodedtext []byte
 	DecodeTable decodeTable
 }
 
-func EncodeToJSON(text string) ([]byte, error) {
-	encodedText, decodeTable, err := EncodeString(text)
+func EncodeToJSON(text []byte) ([]byte, error) {
+	encodedText, decodeTable, err := Encode(text)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -24,24 +24,24 @@ func EncodeToJSON(text string) ([]byte, error) {
 	return bytes, nil
 }
 
-func DecodeFromJSON(bytes []byte) (string, error) {
+func DecodeFromJSON(bytes []byte) ([]byte, error) {
 	var algoData algoDataJSON
 	if err := json.Unmarshal(bytes, &algoData); err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	decodedText, err := DecodeString(algoData.Encodedtext, algoData.DecodeTable)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	return decodedText, nil
 }
 
-func PrintEncodeStatisticsJSON(text string) {
+func PrintEncodeStatisticsJSON(text []byte) {
 	encodedBytes, err := EncodeToJSON(text)
 	if err != nil {
 		panic(err)
 	}
-	originalBytes, err := json.Marshal(struct{ Text string }{text})
+	originalBytes, err := json.Marshal(struct{ Text []byte }{text})
 	if err != nil {
 		panic(err)
 	}
