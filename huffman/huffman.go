@@ -143,7 +143,8 @@ func decodeWithTable(encodedText []byte, table decodeTable) ([]byte, error) {
 	// TODO detect incorrect decoded text
 	var resultBuilder strings.Builder
 	curBeginIndex := 0
-	for curEndIndex, _ := range encodedText {
+
+	for curEndIndex := 0; curEndIndex < len(encodedText); curEndIndex++ {
 		currentBitSequence := encodedText[curBeginIndex : curEndIndex+1]
 		if decodedChar, ok := table[string(currentBitSequence)]; ok {
 			resultBuilder.WriteRune(decodedChar)
