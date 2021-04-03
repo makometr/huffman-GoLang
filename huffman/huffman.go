@@ -232,6 +232,7 @@ func checkUserDecodeTable(table decodeTable) error {
 			return errors.New("unique chars encoded expected")
 		}
 		samePrefixCounter := 0
+		// Fix this
 		for checkedCode, _ := range table {
 			if strings.HasPrefix(code, checkedCode) {
 				samePrefixCounter++
