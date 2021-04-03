@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/golang-standards/project-layout?style=flat-square)](https://goreportcard.com/report/github.com/makometr/huffman-GoLang)
+[![Go Report Card](https://goreportcard.com/badge/github.com/makometr/huffman-GoLang)](https://goreportcard.com/report/github.com/makometr/huffman-GoLang)
 
 # huffman-GoLang
 
